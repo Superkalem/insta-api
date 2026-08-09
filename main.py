@@ -1,29 +1,18 @@
-import os
 from fastapi import FastAPI, HTTPException
 from instagrapi import Client
 
 app = FastAPI()
+# Giriş yapmıyoruz, sadece anonim (misafir) mod başlatıyoruz
 cl = Client()
-
-# Sahte hesabının kullanıcı adı ve şifresini buraya yazabilirsin 
-# (Veya daha önce Render ayarlarına eklediğimiz gizli değişkenlerden alır)
-IG_USERNAME = os.getenv("IG_USERNAME", "buraya_kullanici_adi_yaz")
-IG_PASSWORD = os.getenv("IG_PASSWORD", "buraya_sifre_yaz")
-
-# Sunucu başlarken otomatik giriş yap
-try:
-    cl.login(IG_USERNAME, IG_PASSWORD)
-    print("Instagram'a basariyla giris yapildi!")
-except Exception as e:
-    print(f"Giris basarisiz: {e}")
 
 @app.get("/")
 def read_root():
-    return {"mesaj": "Gelişmiş Instagram API Çalışıyor!"}
+    return {"mesaj": "Anonim Instagram API Çalışıyor!"}
 
 @app.get("/profil/{username}")
 def get_user_data(username: str):
     try:
+        # Giriş yapmadan doğrudan kullanıcı ID'sini al ve bilgileri çek
         user_id = cl.user_id_from_username(username)
         user_info = cl.user_info(user_id)
         
