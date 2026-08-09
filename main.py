@@ -1,8 +1,21 @@
+import os
 from fastapi import FastAPI, HTTPException
 from instagrapi import Client
 
 app = FastAPI()
 cl = Client()
+
+# Sahte hesabının kullanıcı adı ve şifresini buraya yazabilirsin 
+# (Veya daha önce Render ayarlarına eklediğimiz gizli değişkenlerden alır)
+IG_USERNAME = os.getenv("IG_USERNAME", "buraya_kullanici_adi_yaz")
+IG_PASSWORD = os.getenv("IG_PASSWORD", "buraya_sifre_yaz")
+
+# Sunucu başlarken otomatik giriş yap
+try:
+    cl.login(IG_USERNAME, IG_PASSWORD)
+    print("Instagram'a basariyla giris yapildi!")
+except Exception as e:
+    print(f"Giris basarisiz: {e}")
 
 @app.get("/")
 def read_root():
