@@ -1,46 +1,29 @@
-import os
 from fastapi import FastAPI, HTTPException
-import instaloader
+from instagrapi import Client
 
 app = FastAPI()
-L = instaloader.Instaloader(
-    download_pictures=False,
-    download_videos=False,
-    download_video_thumbnails=False,
-    download_geotags=False,
-    download_comments=False,
-    save_metadata=False,
-    compress_json=False
-)
-
-# Render'ın gizli kasasından bilgileri çekiyoruz
-IG_USER = os.getenv("IG_USERNAME")
-IG_PASS = os.getenv("IG_PASSWORD")
-
-if IG_USER and IG_PASS:
-    try:
-        L.login(IG_USER, IG_PASS)
-        print("Instagram'a basariyla giris yapildi!")
-    except Exception as e:
-        print(f"Giris yapilamadi, hata: {e}")
+cl = Client()
 
 @app.get("/")
-def home():
-    return {"mesaj": "Instagram API Calisiyor!"}
+def read_root():
+    return {"mesaj": "Gelişmiş Instagram API Çalışıyor!"}
 
 @app.get("/profil/{username}")
-def get_profile(username: str):
+def get_user_data(username: str):
     try:
-        profile = instaloader.Profile.from_username(L.context, username)
-        return {
-            "username": profile.username,
-            "full_name": profile.full_name,
-            "biography": profile.biography,
-            "profile_pic_url": profile.profile_pic_url,
-            "followers": profile.followers,
-            "following": profile.followees,
-            "is_private": profile.is_private,
-            "post_count": profile.mediacount
+        user_id = cl.user_id_from_username(username)
+        user_info = cl.user_info(user_id)
+        
+        profil_verisi = {
+            "username": user_info.username,
+            "full_name": user_info.full_name,
+            "followers": user_info.follower_count,
+            "following": user_info.following_count,
+            "biography": user_info.biography,
+            "profile_pic": str(user_info.profile_pic_url)
         }
+        
+        return profil_verisi
+        
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
