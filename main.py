@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 import instaloader
 
@@ -11,6 +12,17 @@ L = instaloader.Instaloader(
     save_metadata=False,
     compress_json=False
 )
+
+# Render'ın gizli kasasından bilgileri çekiyoruz
+IG_USER = os.getenv("IG_USERNAME")
+IG_PASS = os.getenv("IG_PASSWORD")
+
+if IG_USER and IG_PASS:
+    try:
+        L.login(IG_USER, IG_PASS)
+        print("Instagram'a basariyla giris yapildi!")
+    except Exception as e:
+        print(f"Giris yapilamadi, hata: {e}")
 
 @app.get("/")
 def home():
