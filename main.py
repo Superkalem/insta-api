@@ -1,39 +1,39 @@
-import os
 from fastapi import FastAPI, HTTPException
-from instagrapi import Client
+import requests
+from bs4 import BeautifulSoup
 
-app = FastAPI()
-cl = Client()
+app = FastAPI(title="Anonim Profil API")
 
-# Render'daki gizli kasadan bilgileri alıp otomatik giriş yapıyoruz
-IG_USER = os.getenv("IG_USERNAME")
-IG_PASS = os.getenv("IG_PASSWORD")
-
-if IG_USER and IG_PASS:
+@app.get("/profile/{username}")
+def get_profile(username: str):
+    # İsteklerin bot gibi görünmemesi için standart bir tarayıcı başlığı
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+    }
+    
+    # Giriş zorunluluğunu tamamen aşmak için veriyi anonim görüntüleyici üzerinden çekiyoruz
+    url = f"https://www.picuki.com/profile/{username}"
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code != 200:
+        raise HTTPException(status_code=404, detail="Profil bulunamadı veya aracı site yanıt vermiyor.")
+        
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
     try:
-        cl.login(IG_USER, IG_PASS)
-        print("Basariyla giris yapildi!")
-    except Exception as e:
-        print(f"Giris hatasi: {e}")
-
-@app.get("/")
-def read_root():
-    return {"mesaj": "Instagram API Çalışıyor!"}
-
-@app.get("/profil/{username}")
-def get_user_data(username: str):
-    try:
-        # Oturum açıldığı için artık bu fonksiyon hata vermeden veriyi çekecek
-        user_id = cl.user_id_from_username(username)
-        user_info = cl.user_info(user_id)
+        # Profil fotoğrafı linkini HTML'den bul ve çıkar
+        profile_pic = soup.find("img", {"class": "profile-avatar"})['src']
+        
+        # Takipçi sayısının olduğu bölümü bul
+        followers_element = soup.find("span", {"class": "followed_by"})
+        followers = followers_element.text.strip() if followers_element else "Bulunamadı"
         
         return {
-            "username": user_info.username,
-            "full_name": user_info.full_name,
-            "followers": user_info.follower_count,
-            "following": user_info.following_count,
-            "biography": user_info.biography,
-            "profile_pic": str(user_info.profile_pic_url)
+            "username": username,
+            "profile_picture": profile_pic,
+            "followers": followers,
+            "status": "success"
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Veri okunurken hata oluştu. Hata: {str(e)}")
