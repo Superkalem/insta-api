@@ -1,28 +1,35 @@
 from fastapi import FastAPI, HTTPException
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 
 app = FastAPI(title="Anonim Profil API")
 
 @app.get("/profile/{username}")
 def get_profile(username: str):
-    # İsteklerin bot gibi görünmemesi için standart bir tarayıcı başlığı
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-    }
+    # Cloudscraper ile gerçek bir kullanıcı (Chrome/Windows) taklidi yapıyoruz
+    scraper = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True
+        }
+    )
     
-    # Giriş zorunluluğunu tamamen aşmak için veriyi anonim görüntüleyici üzerinden çekiyoruz
     url = f"https://www.picuki.com/profile/{username}"
     
-    response = requests.get(url, headers=headers)
+    # requests.get yerine cloudscraper kullanıyoruz
+    response = scraper.get(url)
     
     if response.status_code != 200:
-        raise HTTPException(status_code=404, detail="Profil bulunamadı veya aracı site yanıt vermiyor.")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Güvenlik duvarı aşılamadı veya profil gizli. Durum Kodu: {response.status_code}"
+        )
         
     soup = BeautifulSoup(response.content, 'html.parser')
     
     try:
-        # Profil fotoğrafı linkini HTML'den bul ve çıkar
+        # Profil fotoğrafı linkini HTML'den bul
         profile_pic = soup.find("img", {"class": "profile-avatar"})['src']
         
         # Takipçi sayısının olduğu bölümü bul
@@ -36,4 +43,4 @@ def get_profile(username: str):
             "status": "success"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Veri okunurken hata oluştu. Hata: {str(e)}")
+        raise HTTPException(status_code=500, detail="Sayfa HTML yapısı okunamadı veya Cloudflare Captcha (Doğrulama) ekranına düşüldü.")
